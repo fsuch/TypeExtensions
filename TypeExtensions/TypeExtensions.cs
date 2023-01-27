@@ -2,20 +2,34 @@
 
 public static class TypeExtensions
 {
-    public static bool Implements(this Type type, Type implementedType)
+    public static bool Implements(this Type type, Type targetImplementedType)
     {
-        var typeInterfaces = type.GetInterfaces();
-        var implementedTypeIsOpenGeneric = implementedType.IsGenericType &&
-            !implementedType.GenericTypeArguments.Any();
+        var implementedTypes = type.GetInterfaces()
+            .Concat(GetBaseTypes(type))
+            .ToArray();
         
-        if (implementedTypeIsOpenGeneric)
+        var targetImplementedTypeIsOpenGeneric =
+            targetImplementedType.IsGenericType &&
+            !targetImplementedType.GenericTypeArguments.Any();
+        
+        if (targetImplementedTypeIsOpenGeneric)
         {
-            typeInterfaces = typeInterfaces
+            implementedTypes = implementedTypes
                 .Where(t => t.IsGenericType)
                 .Select(t => t.GetGenericTypeDefinition())
                 .ToArray();
         }
         
-        return typeInterfaces.Any(typeInterface => typeInterface.IsAssignableTo(implementedType));
+        return implementedTypes.Any(typeInterface => typeInterface.IsAssignableTo(targetImplementedType));
+    }
+
+    private static IEnumerable<Type> GetBaseTypes(Type type)
+    {
+        var baseType = type.BaseType;
+        while (baseType != null)
+        {
+            yield return baseType;
+            baseType = baseType.BaseType;
+        }
     }
 }
